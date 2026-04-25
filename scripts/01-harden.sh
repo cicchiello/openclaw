@@ -50,26 +50,16 @@ log "  $NFS_MOUNT is now owned by $OPENCLAW_USER:$OPENCLAW_GROUP (mode 750)."
 # ---------------------------------------------------------------------------
 # 3. Firewall via nftables
 #    Inbound:  allow SSH (22) only
-#    Outbound: allow DNS (53), NTP (123), NFS (2049), api.anthropic.com (443)
+#    Outbound: allow DNS (53), NTP (123), NFS (2049), all HTTPS (443)
 #              allow responses to established connections
 #              drop everything else
+#    Note: HTTPS is open to any destination because services like GitHub and
+#    Anthropic use CDNs/rotating IPs that can't be reliably pinned by IP.
+#    Application-level config (OpenClaw's allowed endpoints) is the real
+#    control for what the agent can call.
 # ---------------------------------------------------------------------------
 log "Step 3: Installing nftables..."
 apt-get install -y --quiet nftables
-
-resolve_rules() {
-    local host=$1 port=$2 proto=$3
-    local ip4 ip6 rules=""
-    ip4=$(getent ahostsv4 "$host" | awk '{print $1; exit}')
-    ip6=$(getent ahostsv6 "$host" | awk '{print $1; exit}')
-    [[ -n "$ip4" || -n "$ip6" ]] || die "Could not resolve $host — check DNS."
-    [[ -n "$ip4" ]] && log "  $host IPv4: $ip4" && rules+="        ip daddr $ip4 $proto dport $port accept"$'\n'
-    [[ -n "$ip6" ]] && log "  $host IPv6: $ip6" && rules+="        ip6 daddr $ip6 $proto dport $port accept"$'\n'
-    echo "$rules"
-}
-
-ANTHROPIC_RULES=$(resolve_rules api.anthropic.com 443 tcp)
-GITHUB_RULES=$(resolve_rules github.com 443 tcp)
 
 NFS_SERVER_IP=10.0.0.214
 
@@ -121,10 +111,9 @@ table inet filter {
         ip daddr $NFS_SERVER_IP tcp dport 2049 accept
         ip daddr $NFS_SERVER_IP udp dport 2049 accept
 
-        # Anthropic API (IPv4 and/or IPv6 as resolved at install time)
-${ANTHROPIC_RULES}
-        # GitHub (for git pull on the Pi)
-${GITHUB_RULES}
+        # HTTPS to any destination (GitHub, Anthropic, etc. use rotating IPs)
+        tcp dport 443 accept
+
         # Drop everything else outbound
     }
 }
@@ -163,6 +152,6 @@ log ""
 log "Hardening complete. Summary:"
 log "  User:     $OPENCLAW_USER (no shell, system account)"
 log "  NFS mount: $NFS_MOUNT owned by $OPENCLAW_USER, mode 750, noexec,nosuid"
-log "  Firewall: nftables active — inbound SSH only, outbound: DNS/NTP/NFS/${ANTHROPIC_IP4:-}/${ANTHROPIC_IP6:-}:443"
+log "  Firewall: nftables active — inbound SSH only, outbound: DNS/NTP/NFS/HTTPS(443 any)"
 log ""
 log "Next step: run 'nft list ruleset' and 'id openclaw' to verify, then report back."
