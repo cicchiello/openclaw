@@ -57,9 +57,16 @@ log "  $NFS_MOUNT is now owned by $OPENCLAW_USER:$OPENCLAW_GROUP (mode 750)."
 log "Step 3: Installing nftables..."
 apt-get install -y --quiet nftables
 
-ANTHROPIC_IP=$(getent hosts api.anthropic.com | awk '{print $1; exit}')
-[[ -n "$ANTHROPIC_IP" ]] || die "Could not resolve api.anthropic.com — check DNS."
-log "  api.anthropic.com resolved to $ANTHROPIC_IP"
+ANTHROPIC_IP4=$(getent ahostsv4 api.anthropic.com | awk '{print $1; exit}')
+ANTHROPIC_IP6=$(getent ahostsv6 api.anthropic.com | awk '{print $1; exit}')
+[[ -n "$ANTHROPIC_IP4" || -n "$ANTHROPIC_IP6" ]] || die "Could not resolve api.anthropic.com — check DNS."
+[[ -n "$ANTHROPIC_IP4" ]] && log "  api.anthropic.com IPv4: $ANTHROPIC_IP4"
+[[ -n "$ANTHROPIC_IP6" ]] && log "  api.anthropic.com IPv6: $ANTHROPIC_IP6"
+
+# Build Anthropic allowlist rules for whichever address families resolved
+ANTHROPIC_RULES=""
+[[ -n "$ANTHROPIC_IP4" ]] && ANTHROPIC_RULES+="        ip daddr $ANTHROPIC_IP4 tcp dport 443 accept"$'\n'
+[[ -n "$ANTHROPIC_IP6" ]] && ANTHROPIC_RULES+="        ip6 daddr $ANTHROPIC_IP6 tcp dport 443 accept"$'\n'
 
 NFS_SERVER_IP=10.0.0.214
 
@@ -111,9 +118,8 @@ table inet filter {
         ip daddr $NFS_SERVER_IP tcp dport 2049 accept
         ip daddr $NFS_SERVER_IP udp dport 2049 accept
 
-        # Anthropic API
-        ip daddr $ANTHROPIC_IP tcp dport 443 accept
-
+        # Anthropic API (IPv4 and/or IPv6 as resolved at install time)
+${ANTHROPIC_RULES}
         # Drop everything else outbound
     }
 }
