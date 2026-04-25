@@ -2,4 +2,5 @@ proc            /proc           proc    defaults          0       0
 PARTUUID=47c1812d-01  /boot/firmware  vfat    defaults          0       2
 PARTUUID=47c1812d-02  /               ext4    defaults,noatime  0       1
 
-pi-nas:/export/openclaw  /mnt/openclaw   nfs   defaults,_netdev,nofail   0   0/swapfile none swap sw 0 0
+pi-nas:/export/openclaw  /mnt/openclaw   nfs   defaults,noexec,nosuid,_netdev,nofail   0   0
+/swapfile none swap sw 0 0

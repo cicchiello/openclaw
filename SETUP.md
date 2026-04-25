@@ -64,4 +64,10 @@ nft list ruleset
 ls -ld /mnt/openclaw
 ```
 
-<!-- Results will be recorded here after running on the Pi. -->
+Results:
+
+- User `openclaw` created (uid=999, gid=985, no shell, no home dir)
+- `/mnt/openclaw` owned by `openclaw:openclaw`, mode `750`, mounted with `noexec,nosuid`
+- `nftables` active — inbound SSH only; outbound DNS, NTP, NFS to `pi-nas`, HTTPS to `api.anthropic.com` (both IPv4 and IPv6)
+- `/etc/fstab` corrected (swapfile entry was concatenated onto NFS line; split into two lines) and NFS entry updated with `noexec,nosuid`
+
