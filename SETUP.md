@@ -36,4 +36,31 @@ And the filesystem is defined in /etc/fstab per the example here:
 
 ## OpenClaw Installation
 
-<!-- Steps will be added here as setup proceeds. -->
+### Step 1: System Hardening
+
+Script: `scripts/01-harden.sh`
+
+Run on the Pi as root:
+
+```bash
+sudo bash scripts/01-harden.sh
+```
+
+What it does:
+
+| Area | Action |
+|---|---|
+| User/group | Creates system user `openclaw` (no shell, no home dir) |
+| NFS mount | Asserts `/mnt/openclaw` is mounted, sets owner to `openclaw:openclaw`, mode `750` |
+| Firewall | Installs `nftables`; inbound: SSH only; outbound: DNS, NTP, NFS to `pi-nas`, HTTPS to `api.anthropic.com` only |
+| fstab | Adds `noexec,nosuid` to the NFS mount entry |
+
+After the script completes, verify with:
+
+```bash
+id openclaw
+nft list ruleset
+ls -ld /mnt/openclaw
+```
+
+<!-- Results will be recorded here after running on the Pi. -->
