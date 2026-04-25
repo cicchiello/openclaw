@@ -14,6 +14,14 @@ OPENCLAW_USER=openclaw
 OPENCLAW_GROUP=openclaw
 
 # ---------------------------------------------------------------------------
+# 0. Safety net: schedule a reboot in 5 minutes in case the firewall locks
+#    us out of SSH. Cancelled at the end of the script if all goes well.
+# ---------------------------------------------------------------------------
+log "Step 0: Scheduling safety-net reboot in 5 minutes (will be cancelled on success)..."
+shutdown -r +5 "Safety-net reboot: firewall hardening in progress" 2>/dev/null || true
+log "  Reboot scheduled. If SSH becomes unreachable, the Pi will reboot and restore access."
+
+# ---------------------------------------------------------------------------
 # 1. Create openclaw user and group
 # ---------------------------------------------------------------------------
 log "Step 1: Creating user/group '$OPENCLAW_USER'..."
@@ -134,8 +142,12 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 5. Summary
+# 5. Cancel safety-net reboot and summarise
 # ---------------------------------------------------------------------------
+log "Step 5: Cancelling safety-net reboot (all steps succeeded)..."
+shutdown -c 2>/dev/null || true
+log "  Reboot cancelled."
+
 log ""
 log "Hardening complete. Summary:"
 log "  User:     $OPENCLAW_USER (no shell, system account)"
