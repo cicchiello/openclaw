@@ -68,6 +68,22 @@ Results:
 
 - User `openclaw` created (uid=999, gid=985, no shell, no home dir)
 - `/mnt/openclaw` owned by `openclaw:openclaw`, mode `750`, mounted with `noexec,nosuid`
-- `nftables` active — inbound SSH only; outbound DNS, NTP, NFS to `pi-nas`, HTTPS to `api.anthropic.com` (both IPv4 and IPv6)
-- `/etc/fstab` corrected (swapfile entry was concatenated onto NFS line; split into two lines) and NFS entry updated with `noexec,nosuid`
+- `nftables` active — inbound SSH and LAN ICMP only; outbound DNS, NTP, NFS to `pi-nas`, HTTPS (port 443, any destination), LAN ICMP
+- `/etc/fstab` corrected (swapfile entry was concatenated onto NFS line; split into two lines), NFS entry updated with `vers=4,noexec,nosuid`, and path corrected to `pi-nas:/openclaw` (NFSv4 path relative to export root)
+
+### Step 2: Crabby System Prompt
+
+Created `CRABBY.md` — defines Crabby's identity, filesystem boundaries, network constraints,
+data handling rules, and current task domains (system monitoring, brokerage analysis).
+
+### Step 3: Prompt Routing
+
+Created `CRABBY_ROUTING.md` — defines three-tier model routing:
+- **Local (Ollama):** routine monitoring (Ollama not yet installed)
+- **Cheap (Claude Haiku):** secondary review of flagged monitoring output
+- **Primary (Claude Sonnet/Opus):** anomalies, all brokerage analysis
+
+### Step 4: OpenClaw Onboard
+
+Next: run `openclaw onboard` on the Pi with `CRABBY.md` and `CRABBY_ROUTING.md` in place.
 

@@ -55,11 +55,11 @@ OpenClaw config, and system prompt):
 |---|---|
 | `SETUP.md` | Step-by-step setup log, updated as we proceed |
 | `CONTEXT.md` | This file — handoff context for Claude Code |
-| `CLAW.md` | OpenClaw system prompt, persona, and behavioral boundaries |
-| `CLAW_ROUTING.md` | Prompt routing logic and model dispatch configuration |
+| `CRABBY.md` | Crabby system prompt, persona, and behavioral boundaries |
+| `CRABBY_ROUTING.md` | Prompt routing logic and model dispatch configuration |
 | `etc/` | System config files mirroring their paths on the Pi |
 
-`CLAW.md` and `CLAW_ROUTING.md` have not been created yet — they are next.
+`CRABBY_ROUTING.md` has not been created yet — it is next.
 
 ---
 
