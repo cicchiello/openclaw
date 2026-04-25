@@ -57,16 +57,19 @@ log "  $NFS_MOUNT is now owned by $OPENCLAW_USER:$OPENCLAW_GROUP (mode 750)."
 log "Step 3: Installing nftables..."
 apt-get install -y --quiet nftables
 
-ANTHROPIC_IP4=$(getent ahostsv4 api.anthropic.com | awk '{print $1; exit}')
-ANTHROPIC_IP6=$(getent ahostsv6 api.anthropic.com | awk '{print $1; exit}')
-[[ -n "$ANTHROPIC_IP4" || -n "$ANTHROPIC_IP6" ]] || die "Could not resolve api.anthropic.com — check DNS."
-[[ -n "$ANTHROPIC_IP4" ]] && log "  api.anthropic.com IPv4: $ANTHROPIC_IP4"
-[[ -n "$ANTHROPIC_IP6" ]] && log "  api.anthropic.com IPv6: $ANTHROPIC_IP6"
+resolve_rules() {
+    local host=$1 port=$2 proto=$3
+    local ip4 ip6 rules=""
+    ip4=$(getent ahostsv4 "$host" | awk '{print $1; exit}')
+    ip6=$(getent ahostsv6 "$host" | awk '{print $1; exit}')
+    [[ -n "$ip4" || -n "$ip6" ]] || die "Could not resolve $host — check DNS."
+    [[ -n "$ip4" ]] && log "  $host IPv4: $ip4" && rules+="        ip daddr $ip4 $proto dport $port accept"$'\n'
+    [[ -n "$ip6" ]] && log "  $host IPv6: $ip6" && rules+="        ip6 daddr $ip6 $proto dport $port accept"$'\n'
+    echo "$rules"
+}
 
-# Build Anthropic allowlist rules for whichever address families resolved
-ANTHROPIC_RULES=""
-[[ -n "$ANTHROPIC_IP4" ]] && ANTHROPIC_RULES+="        ip daddr $ANTHROPIC_IP4 tcp dport 443 accept"$'\n'
-[[ -n "$ANTHROPIC_IP6" ]] && ANTHROPIC_RULES+="        ip6 daddr $ANTHROPIC_IP6 tcp dport 443 accept"$'\n'
+ANTHROPIC_RULES=$(resolve_rules api.anthropic.com 443 tcp)
+GITHUB_RULES=$(resolve_rules github.com 443 tcp)
 
 NFS_SERVER_IP=10.0.0.214
 
@@ -120,6 +123,8 @@ table inet filter {
 
         # Anthropic API (IPv4 and/or IPv6 as resolved at install time)
 ${ANTHROPIC_RULES}
+        # GitHub (for git pull on the Pi)
+${GITHUB_RULES}
         # Drop everything else outbound
     }
 }

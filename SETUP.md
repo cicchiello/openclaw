@@ -53,7 +53,7 @@ What it does:
 | Safety net | Schedules a reboot in 5 minutes at the start; cancelled at the end if all steps succeed — ensures SSH access is restored if the firewall misconfigures |
 | User/group | Creates system user `openclaw` (no shell, no home dir) |
 | NFS mount | Asserts `/mnt/openclaw` is mounted, sets owner to `openclaw:openclaw`, mode `750` |
-| Firewall | Installs `nftables`; inbound: SSH only; outbound: DNS, NTP, NFS to `pi-nas`, HTTPS to `api.anthropic.com` only |
+| Firewall | Installs `nftables`; inbound: SSH only; outbound: DNS, NTP, NFS to `pi-nas`, HTTPS to `api.anthropic.com` and `github.com` only |
 | fstab | Adds `noexec,nosuid` to the NFS mount entry |
 
 After the script completes, verify with:
