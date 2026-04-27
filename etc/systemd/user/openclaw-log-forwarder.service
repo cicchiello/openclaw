@@ -4,7 +4,7 @@ After=openclaw-gateway.service
 BindsTo=openclaw-gateway.service
 
 [Service]
-ExecStart=/bin/bash -c 'exec openclaw logs --follow --json >> /mnt/openclaw/logs/gateway.log 2>&1'
+ExecStart=/bin/bash -c 'exec /home/joe/.npm-global/bin/openclaw logs --follow --json >> /mnt/openclaw/logs/gateway.log 2>&1'
 Restart=on-failure
 RestartSec=5
 
