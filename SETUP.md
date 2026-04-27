@@ -169,8 +169,33 @@ seconds before allowing the gateway to start.
 Note: `OPENCLAW_STATE_DIR` was initially set to `/mnt/openclaw/.openclaw-state` to reduce
 SD card write wear. This was reverted — the exec tool has `~/.openclaw` partially
 hardcoded and `OPENCLAW_STATE_DIR` does not fully redirect it, breaking the overnight
-monitoring job. State stays at `~/.openclaw`; logs go to `/mnt/openclaw/logs/` per the
-OpenClaw logging config (satisfying the audit requirement without moving the state dir).
+monitoring job. State stays at `~/.openclaw`; logs go to `/mnt/openclaw/logs/` via the
+log forwarder service (see below).
+
+#### Logging
+
+`logging.file` in OpenClaw config appears broken/unimplemented in v2026.4.23 — setting it
+has no effect. Runtime logs are instead captured via a forwarder service that pipes
+`openclaw logs --follow` to the NFS sharepoint.
+
+Service file is tracked at `etc/systemd/user/openclaw-log-forwarder.service`. Deploy:
+
+```bash
+cp ~/openclaw/etc/systemd/user/openclaw-log-forwarder.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now openclaw-log-forwarder.service
+```
+
+Logs are written to `/mnt/openclaw/logs/gateway.log` in JSON format.
+
+Note: `BindsTo=openclaw-gateway.service` ensures the forwarder stops and restarts with
+the gateway.
+
+Note: LLM conversation content (what is sent to/from models) is **not** in the runtime
+log at `info` level. Main session transcripts are stored as JSONL files under
+`~/.openclaw/agents/main/sessions/`. Embedded/subagent dispatches (e.g. Ollama) are not
+persisted by default — `diagnostics.cacheTrace` is the mechanism to capture those
+payloads but has not been configured yet.
 
 ### Remaining Tasks
 
