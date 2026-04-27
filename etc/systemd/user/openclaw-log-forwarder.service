@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenClaw Log Forwarder
+After=openclaw-gateway.service
+BindsTo=openclaw-gateway.service
+
+[Service]
+ExecStart=/bin/bash -c 'exec openclaw logs --follow --json >> /mnt/openclaw/logs/gateway.log 2>&1'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
