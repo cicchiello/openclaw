@@ -84,6 +84,9 @@ table inet filter {
         # Allow SSH from any host on the local network
         tcp dport 22 accept
 
+        # Allow OpenClaw gateway (Control UI + API)
+        tcp dport 18789 accept
+
         # Allow ICMP from LAN only (ping, diagnostics)
         ip saddr 10.0.0.0/24 icmp type { echo-request, echo-reply } accept
         ip6 saddr fe80::/10 icmpv6 type { echo-request, echo-reply } accept
@@ -117,6 +120,9 @@ table inet filter {
 
         # HTTPS to any destination (GitHub, Anthropic, etc. use rotating IPs)
         tcp dport 443 accept
+
+        # STUN/TURN for Raspberry Pi Connect data channel (WebRTC)
+        udp dport 3478 accept
 
         # Allow ICMP to LAN only (ping, diagnostics)
         ip daddr 10.0.0.0/24 icmp type { echo-request, echo-reply } accept

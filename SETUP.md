@@ -85,5 +85,97 @@ Created `CRABBY_ROUTING.md` — defines three-tier model routing:
 
 ### Step 4: OpenClaw Onboard
 
-Next: run `openclaw onboard` on the Pi with `CRABBY.md` and `CRABBY_ROUTING.md` in place.
+Ran `openclaw onboard` (Manual mode). Configured:
+- Primary model: `anthropic/claude-opus-4-7`
+- Gateway port: `18789`, bound to `0.0.0.0`
+- Gateway auth: password
+- Chat channel: Telegram (Bot API), dmPolicy set to `allowlist` with Joe's user ID
+- Plugin: `@openclaw/ollama-provider` installed (discovery disabled until Ollama is set up)
+- Hook: `session-memory` enabled
+- Crabby initialized via TUI with `CRABBY.md` copied to `/mnt/openclaw/CRABBY.md`
+
+Gateway runs as a user-level systemd service. To restart:
+
+```bash
+systemctl --user restart openclaw-gateway.service
+```
+
+### Step 5: Post-Onboard Configuration
+
+#### Telegram allowlist
+Locked down bot to Joe's Telegram user ID only:
+```bash
+openclaw config set channels.telegram.dmPolicy "allowlist"
+openclaw config set channels.telegram.allowFrom '["<JOE_TELEGRAM_ID>"]'
+systemctl --user restart openclaw-gateway.service
+```
+
+#### Control UI firewall rule
+Added inbound port 18789 to nftables (also added to `scripts/01-harden.sh`):
+```bash
+sudo nft add rule inet filter input tcp dport 18789 accept
+sudo nft list ruleset | sudo tee /etc/nftables.conf
+```
+
+Access via SSH tunnel for secure context (required for device identity features):
+```bash
+ssh -N -L 18789:127.0.0.1:18789 joe@10.0.0.52
+```
+Then open `http://localhost:18789` in browser.
+
+#### Ollama installation
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3.2:3b
+```
+
+Moved model storage to NFS:
+```bash
+sudo systemctl stop ollama
+sudo mv /usr/share/ollama/.ollama /mnt/openclaw/.ollama
+sudo mkdir -p /etc/systemd/system/ollama.service.d
+sudo tee /etc/systemd/system/ollama.service.d/override.conf <<EOF
+[Service]
+Environment="OLLAMA_MODELS=/mnt/openclaw/.ollama/models"
+EOF
+sudo systemctl daemon-reload
+sudo systemctl start ollama
+```
+
+Enabled Ollama plugin in OpenClaw:
+```bash
+openclaw config set plugins.entries.ollama.enabled true
+openclaw config set plugins.entries.ollama.config.discovery.enabled true
+```
+
+#### Pi startup optimizations
+```bash
+mkdir -p /var/tmp/openclaw-compile-cache
+mkdir -p ~/.config/systemd/user/openclaw-gateway.service.d
+cat > ~/.config/systemd/user/openclaw-gateway.service.d/override.conf <<'EOF'
+[Service]
+ExecStartPre=/bin/bash -c 'for i in $(seq 1 30); do mountpoint -q /mnt/openclaw && exit 0; sleep 2; done; exit 1'
+Environment="NODE_COMPILE_CACHE=/var/tmp/openclaw-compile-cache"
+Environment="OPENCLAW_NO_RESPAWN=1"
+EOF
+systemctl --user daemon-reload
+```
+
+Note: `After=remote-fs.target` in a user unit is silently ignored — the user manager runs
+as a separate systemd instance and cannot see system-level targets. The `ExecStartPre`
+poll loop is the correct fix. It checks for the NFS mount every 2 seconds for up to 60
+seconds before allowing the gateway to start.
+
+Note: `OPENCLAW_STATE_DIR` was initially set to `/mnt/openclaw/.openclaw-state` to reduce
+SD card write wear. This was reverted — the exec tool has `~/.openclaw` partially
+hardcoded and `OPENCLAW_STATE_DIR` does not fully redirect it, breaking the overnight
+monitoring job. State stays at `~/.openclaw`; logs go to `/mnt/openclaw/logs/` per the
+OpenClaw logging config (satisfying the audit requirement without moving the state dir).
+
+### Remaining Tasks
+
+- [ ] Ollama — verify it now appears in `openclaw models list` (was timing out on 4GB Pi; 8GB swap + boot ordering fix should resolve)
+- [ ] HTTPS for Control UI (deferred — SSH tunnel works for now)
+- [ ] SOUL.md review (Crabby rewrote it during init — verify it matches CRABBY.md)
+- [ ] Work monitoring data path (TBD — how to get work data to Crabby without email access)
 
