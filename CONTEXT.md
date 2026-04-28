@@ -65,21 +65,18 @@ OpenClaw config, and system prompt):
 
 ## Where We Stopped
 
-The OpenClaw installer has been run:
+Setup is complete and the gateway is running. See SETUP.md for the full log.
 
-```bash
-curl -fsSL https://openclaw.ai/install.sh | bash
-```
+Current state:
+- Gateway running as a user-level systemd service on the Pi
+- Telegram channel active, locked to Joe's user ID
+- Claude Opus as primary model
+- Haiku as cheap/secondary tier (local Ollama tier suspended — see SETUP.md Step 6)
+- Runtime logs forwarded to `/mnt/openclaw/logs/gateway.log` via log forwarder service
+- Ollama installed with `llama3.2:3b` and `llama3.2:3b-claw` pulled, but not usable via OpenClaw
+  due to OpenClaw hardcoding `num_ctx=131072` in API calls (exceeds Pi memory)
 
-We stopped at the point where the installer prompted for the auth/model provider.
-We have not yet run `openclaw onboard`.
-
-The next steps before resuming onboard are:
-
-1. Harden the system (firewall, NFS permissions, user/process scoping)
-2. Draft `CLAW.md` (persona and behavioral constraints)
-3. Draft `CLAW_ROUTING.md` (prompt routing)
-4. Then resume `openclaw onboard` with all of the above in place
+Remaining tasks are tracked in SETUP.md under "Remaining Tasks".
 
 ---
 

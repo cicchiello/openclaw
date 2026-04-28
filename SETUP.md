@@ -197,9 +197,43 @@ log at `info` level. Main session transcripts are stored as JSONL files under
 persisted by default — `diagnostics.cacheTrace` is the mechanism to capture those
 payloads but has not been configured yet.
 
+### Step 6: Ollama Local Model — Investigation and Dead End
+
+Attempted to get Ollama working as the local inference tier. Both `llama3.2:1b` and `llama3.2:3b`
+were already pulled. Direct `ollama run llama3.2:3b "say hello"` completed in ~6 seconds, confirming
+the Pi hardware is capable of inference.
+
+The problem: OpenClaw explicitly sets `num_ctx=131072` (the model's architectural maximum) in every
+Ollama API call. This causes Ollama to pre-allocate ~14 GB of KV cache, which exceeds the Pi's
+available memory (~9.7 GB including swap), producing:
+
+```
+500 {"error":"model requires more system memory (15.9 GiB) than is available (9.7 GiB)"}
+```
+
+The following were tried to cap `num_ctx` and all failed — OpenClaw's API call overrides them:
+
+| Approach | What was tried | Result |
+|---|---|---|
+| `contextWindow` in provider model config | Set to 16384, then 32768 | Ignored — OpenClaw still sends 131072 |
+| `params.num_ctx` in model catalog | Added to `agents.defaults.models["ollama/llama3.2:3b"]` | Ignored |
+| OpenAI-compat adapter | Changed provider to `openai-completions` + `baseUrl .../v1` + `injectNumCtxForOpenAICompat: true` | Ignored — same error |
+| Ollama Modelfile `PARAMETER num_ctx` | Created `llama3.2:3b-claw` with `num_ctx 4096` | Direct `ollama run` respected it (27s); OpenClaw's API call overrides it with 131072 |
+
+Root cause: OpenClaw hardcodes the model's architectural context maximum in its Ollama API calls.
+There is no documented config key that prevents this.
+
+Remaining option not tried: **llama.cpp server** with `--ctx-size` flag enforces the context window
+at the TCP socket level — no API caller can override it. OpenClaw would connect via the
+`openai-completions` adapter. Ollama's existing GGUF files at `/mnt/openclaw/.ollama/models/blobs/`
+can be used directly.
+
+**Current state:** Ollama integration is suspended. The local model tier in CRABBY_ROUTING.md has
+been dropped for now. Haiku serves as the cheap/secondary tier.
+
 ### Remaining Tasks
 
-- [ ] Ollama — verify it now appears in `openclaw models list` (was timing out on 4GB Pi; 8GB swap + boot ordering fix should resolve)
+- [ ] Local model tier — try llama.cpp server as alternative to Ollama (see Step 6 above)
 - [ ] HTTPS for Control UI (deferred — SSH tunnel works for now)
 - [ ] SOUL.md review (Crabby rewrote it during init — verify it matches CRABBY.md)
 - [ ] Work monitoring data path (TBD — how to get work data to Crabby without email access)
