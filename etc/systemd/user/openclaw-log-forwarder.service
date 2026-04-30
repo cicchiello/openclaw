@@ -4,8 +4,8 @@ After=openclaw-gateway.service
 BindsTo=openclaw-gateway.service
 
 [Service]
-ExecStart=/bin/bash -c 'exec /home/joe/.npm-global/bin/openclaw logs --follow --json >> /mnt/openclaw/logs/gateway.log 2>&1'
-Restart=on-failure
+ExecStart=/bin/bash -c 'while true; do /home/joe/.npm-global/bin/openclaw logs --follow --json >> /mnt/openclaw/logs/gateway.log 2>&1; sleep 2; done'
+Restart=always
 RestartSec=5
 
 [Install]
